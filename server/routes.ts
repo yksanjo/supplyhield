@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { analyzeVendorRisk } from "./openai";
-import { insertVendorSchema, insertVendorProductSchema } from "@shared/schema";
+import { searchCves, getCveById, getRecentCvesForVendor } from "./cve";
+import { insertVendorSchema, insertVendorProductSchema, insertVulnerabilitySchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -201,6 +202,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating product:", error);
       res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  // ============== CVE/Vulnerability Routes ==============
+
+  // Search CVEs by keyword
+  app.get("/api/cve/search", isAuthenticated, async (req: any, res) => {
+    try {
+      const keyword = req.query.q as string;
+      if (!keyword || keyword.length < 2) {
+        return res.status(400).json({ message: "Search query must be at least 2 characters" });
+      }
+      
+      const limit = parseInt(req.query.limit as string) || 20;
+      const cves = await searchCves(keyword, Math.min(limit, 50));
+      res.json(cves);
+    } catch (error) {
+      console.error("Error searching CVEs:", error);
+      res.status(500).json({ message: "Failed to search CVEs" });
+    }
+  });
+
+  // Get CVE by ID
+  app.get("/api/cve/:cveId", isAuthenticated, async (req: any, res) => {
+    try {
+      const cve = await getCveById(req.params.cveId);
+      if (!cve) {
+        return res.status(404).json({ message: "CVE not found" });
+      }
+      res.json(cve);
+    } catch (error) {
+      console.error("Error fetching CVE:", error);
+      res.status(500).json({ message: "Failed to fetch CVE" });
+    }
+  });
+
+  // Get relevant CVEs for a vendor
+  app.get("/api/vendors/:id/cves", isAuthenticated, async (req: any, res) => {
+    try {
+      const vendor = await storage.getVendorById(req.params.id);
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      
+      const productNames = vendor.products?.map(p => p.name) || [];
+      const cves = await getRecentCvesForVendor(vendor.name, productNames);
+      res.json(cves);
+    } catch (error) {
+      console.error("Error fetching CVEs for vendor:", error);
+      res.status(500).json({ message: "Failed to fetch CVEs for vendor" });
+    }
+  });
+
+  // Add vulnerability to vendor (link a CVE or manual entry)
+  app.post("/api/vendors/:vendorId/vulnerabilities", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = insertVulnerabilitySchema.safeParse({
+        ...req.body,
+        vendorId: req.params.vendorId,
+      });
+      
+      if (!parsed.success) {
+        return res.status(400).json({ 
+          message: "Invalid vulnerability data", 
+          errors: parsed.error.errors 
+        });
+      }
+
+      const vulnerability = await storage.createVulnerability(parsed.data);
+      res.status(201).json(vulnerability);
+    } catch (error) {
+      console.error("Error creating vulnerability:", error);
+      res.status(500).json({ message: "Failed to create vulnerability" });
+    }
+  });
+
+  // Update vulnerability status (e.g., open -> remediated)
+  app.patch("/api/vulnerabilities/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const vulnerability = await storage.updateVulnerability(req.params.id, req.body);
+      if (!vulnerability) {
+        return res.status(404).json({ message: "Vulnerability not found" });
+      }
+      res.json(vulnerability);
+    } catch (error) {
+      console.error("Error updating vulnerability:", error);
+      res.status(500).json({ message: "Failed to update vulnerability" });
+    }
+  });
+
+  // Delete vulnerability
+  app.delete("/api/vulnerabilities/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteVulnerability(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting vulnerability:", error);
+      res.status(500).json({ message: "Failed to delete vulnerability" });
     }
   });
 
