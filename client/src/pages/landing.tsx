@@ -37,7 +37,7 @@ export default function Landing() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 dark:from-primary/10 dark:to-primary/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-primary/20" />
         <div className="max-w-screen-2xl mx-auto px-6 py-20 md:py-32 relative">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
@@ -70,7 +70,7 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section className="border-y bg-muted/30">
+      <section className="border-y bg-muted/50">
         <div className="max-w-screen-2xl mx-auto px-6 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
@@ -182,7 +182,7 @@ export default function Landing() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-muted/50">
         <div className="max-w-screen-2xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>

@@ -78,7 +78,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="supplyshield-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="supplyshield-theme">
         <TooltipProvider>
           <Router />
           <Toaster />
